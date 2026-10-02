@@ -1,0 +1,2 @@
+import test from 'node:test'; import assert from 'node:assert/strict'; import {getAllArticles,getArticleBySlug,getArticlesByCategory,getRelatedArticles} from '../lib/articles';
+test('content is sorted and discoverable',()=>{const all=getAllArticles();assert.ok(all.length>=12);assert.equal(getArticleBySlug('la-evolucion-del-falso-nueve')?.category,'Táctica');assert.ok(getArticlesByCategory('Historias').length>0);assert.ok(+new Date(all[0].date)>=+new Date(all[1].date));assert.equal(getRelatedArticles(all[0]).length,3)});

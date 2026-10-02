@@ -1,0 +1,1 @@
+import type {MetadataRoute} from 'next'; import {getAllArticles} from '@/lib/articles'; export default function sitemap():MetadataRoute.Sitemap{return [{url:'https://eleven-football.vercel.app',lastModified:new Date()},...getAllArticles().map(a=>({url:`https://eleven-football.vercel.app/article/${a.slug}`,lastModified:new Date(a.updatedAt||a.date)}))]}

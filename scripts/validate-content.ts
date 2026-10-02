@@ -1,0 +1,2 @@
+import {getAllArticles} from '../lib/articles';
+try{const articles=getAllArticles();const slugs=new Set<string>();for(const a of articles){if(slugs.has(a.slug))throw new Error(`duplicate slug: ${a.slug}`);slugs.add(a.slug)}if(!articles.length)throw new Error('No articles found');console.log(`Validated ${articles.length} articles.`)}catch(error){console.error(`Content validation failed: ${(error as Error).message}`);process.exit(1)}
