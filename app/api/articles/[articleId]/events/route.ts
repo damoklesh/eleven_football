@@ -1,0 +1,4 @@
+import {z} from 'zod'; import {recordArticleEvent} from '@/lib/db/analytics';
+const payload=z.object({type:z.enum(['view','engaged','heartbeat','scroll']),engagedSeconds:z.number().min(0).max(7200).default(0),scrollDepth:z.number().min(0).max(100).default(0),visitorId:z.string().uuid(),source:z.string().max(40).default('direct'),medium:z.string().max(40).default('direct')});
+const bots=/bot|crawl|spider|slurp|facebookexternalhit|preview/i;
+export async function POST(request:Request,{params}:{params:Promise<{articleId:string}>}){const {articleId}=await params;if(!z.string().uuid().safeParse(articleId).success||bots.test(request.headers.get('user-agent')||''))return new Response(null,{status:204});const parsed=payload.safeParse(await request.json().catch(()=>null));if(!parsed.success)return Response.json({error:'Invalid analytics event'},{status:400});await recordArticleEvent({articleId,...parsed.data});return new Response(null,{status:204});}
