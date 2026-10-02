@@ -6,15 +6,16 @@ type ShareButtonsProps = {
   slug: string;
   title: string;
   description: string;
+  canonicalUrl: string;
 };
 
-export function ShareButtons({slug, title, description}: ShareButtonsProps) {
+export function ShareButtons({slug, title, description, canonicalUrl}: ShareButtonsProps) {
   const [status, setStatus] = useState('');
-  const [pageUrl, setPageUrl] = useState('');
+  const [pageUrl, setPageUrl] = useState(canonicalUrl);
 
   useEffect(() => {
     setPageUrl(new URL(`/article/${slug}`, window.location.origin).toString());
-  }, [slug]);
+  }, [canonicalUrl, slug]);
 
   function getUrl() {
     return pageUrl || `/article/${slug}`;
