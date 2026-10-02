@@ -6,7 +6,43 @@
 }
 
 @media (max-width: 650px) {
+  .shell .hero {
+    height: auto !important;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--surface);
+  }
+
+  .shell .hero > img {
+    position: relative !important;
+    inset: auto !important;
+    display: block;
+    width: 100% !important;
+    height: auto !important;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+  }
+
+  .shell .hero .shade {
+    display: none !important;
+  }
+
+  .shell .hero-copy {
+    position: static !important;
+    max-width: none;
+    padding: 20px 22px 24px;
+  }
+
   .card img {
     height: auto;
+  }
+
+  .shell .feature img,
+  .shell .article-hero {
+    width: 100%;
+    height: auto !important;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
   }
 }
