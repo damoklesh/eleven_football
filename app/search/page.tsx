@@ -1,1 +1,2 @@
-import {getAllArticles} from '@/lib/articles'; import SearchClient from '@/components/search-client'; export default function Search(){return <SearchClient articles={getAllArticles()}/>}
+import {redirect} from 'next/navigation';
+export default function LegacySearch(){redirect('/es/search');}

@@ -1,0 +1,2 @@
+import {notFound} from 'next/navigation'; import SearchClient from '@/components/search-client'; import {getAllArticles} from '@/lib/articles'; import {isLocale,type Locale} from '@/lib/i18n';
+export default async function SearchPage({params}:{params:Promise<{locale:string}>}){const {locale:raw}=await params;if(!isLocale(raw))notFound();const locale:Locale=raw;return <SearchClient articles={getAllArticles(locale)} locale={locale}/>}

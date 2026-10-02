@@ -7,15 +7,16 @@ type ShareButtonsProps = {
   title: string;
   description: string;
   canonicalUrl: string;
+  labels: {share:string; copyLink:string; linkCopied:string; shared:string; copyFailed:string};
 };
 
-export function ShareButtons({slug, title, description, canonicalUrl}: ShareButtonsProps) {
+export function ShareButtons({slug, title, description, canonicalUrl, labels}: ShareButtonsProps) {
   const [status, setStatus] = useState('');
   const [pageUrl, setPageUrl] = useState(canonicalUrl);
 
   useEffect(() => {
-    setPageUrl(new URL(`/article/${slug}`, window.location.origin).toString());
-  }, [canonicalUrl, slug]);
+    setPageUrl(canonicalUrl || window.location.href);
+  }, [canonicalUrl]);
 
   function getUrl() {
     return pageUrl || `/article/${slug}`;
@@ -24,9 +25,9 @@ export function ShareButtons({slug, title, description, canonicalUrl}: ShareButt
   async function copyLink() {
     try {
       await navigator.clipboard.writeText(getUrl());
-      setStatus('Enlace copiado');
+      setStatus(labels.linkCopied);
     } catch {
-      setStatus('No se pudo copiar el enlace');
+      setStatus(labels.copyFailed);
     }
   }
 
@@ -39,7 +40,7 @@ export function ShareButtons({slug, title, description, canonicalUrl}: ShareButt
 
     try {
       await navigator.share({title, text: description, url});
-      setStatus('Compartido');
+      setStatus(labels.shared);
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') return;
       await copyLink();
@@ -50,10 +51,10 @@ export function ShareButtons({slug, title, description, canonicalUrl}: ShareButt
   const encodedUrl = encodeURIComponent(pageUrl);
 
   return (
-    <div className="share-tools" aria-label="Compartir artículo">
-      <span className="share-label">Compartir</span>
+    <div className="share-tools" aria-label={labels.share}>
+      <span className="share-label">{labels.share}</span>
       <button className="share-control share-primary" type="button" onClick={shareArticle}>
-        Compartir
+        {labels.share}
       </button>
       <a
         className="share-control"
@@ -72,7 +73,7 @@ export function ShareButtons({slug, title, description, canonicalUrl}: ShareButt
         WhatsApp
       </a>
       <button className="share-control" type="button" onClick={copyLink}>
-        Copiar enlace
+        {labels.copyLink}
       </button>
       <span className="share-status" role="status" aria-live="polite">
         {status}
