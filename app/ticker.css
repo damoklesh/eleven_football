@@ -1,0 +1,1 @@
+.breaking{display:grid;grid-template-columns:max-content minmax(0,1fr);align-items:start;gap:10px;line-height:1.35}.breaking span:first-child{white-space:nowrap}.breaking span:last-child{min-width:0}@media(max-width:900px){.sidebar{display:block}.breaking{margin-bottom:18px}}
