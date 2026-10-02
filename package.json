@@ -11,6 +11,8 @@
     "test": "npm run validate:content && tsx --test tests/articles.test.ts"
   },
   "dependencies": {
+    "@neon/config": "^1.8.3",
+    "@neon/env": "^1.4.8",
     "gray-matter": "^4.0.3",
     "marked": "^15.0.7",
     "next": "^16.1.1",
