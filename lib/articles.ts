@@ -7,6 +7,6 @@ export function getAllArticles():Article[]{if(!fs.existsSync(dir))return [];cons
 export const getArticleBySlug=(slug:string)=>getAllArticles().find(a=>a.slug===slug);
 export const getArticlesByCategory=(category:string)=>getAllArticles().filter(a=>a.category.toLowerCase()===category.toLowerCase());
 export const getFeaturedArticle=()=>getAllArticles().filter(a=>a.featured).sort((a,b)=>b.homepagePriority-a.homepagePriority)[0]??getAllArticles()[0];
-export const getTrendingArticles=()=>{const all=getAllArticles();return [...all.filter(a=>a.trending),...all.filter(a=>!a.trending)].slice(0,5)};
+export const getTrendingArticles=()=>{const all=getAllArticles();return [...all.filter(a=>a.trending),...all.filter(a=>!a.trending)]};
 export const getBreakingArticles=()=>getAllArticles().filter(a=>a.breaking);
 export function getRelatedArticles(article:Article){return getAllArticles().filter(a=>a.slug!==article.slug).sort((a,b)=>{const score=(x:Article)=>Number(x.category===article.category)*3+x.tags.filter(t=>article.tags.includes(t)).length;return score(b)-score(a)||+new Date(b.date)-+new Date(a.date)}).slice(0,3)}
