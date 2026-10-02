@@ -17,7 +17,10 @@ export default function Home(){
   if(tactics)used.add(tactics.slug);
   const breaking=getBreakingArticles().find(article=>!used.has(article.slug));
   if(breaking)used.add(breaking.slug);
-  const trending=getTrendingArticles().filter(article=>!used.has(article.slug)).slice(0,5);
+  const trendingPool=getTrendingArticles().filter(article=>!used.has(article.slug));
+  const dataArticles=all.filter(article=>article.category==='Datos'&&!used.has(article.slug)).slice(0,2);
+  const dataSlugs=new Set(dataArticles.map(article=>article.slug));
+  const trending=[...dataArticles,...trendingPool.filter(article=>!dataSlugs.has(article.slug))].slice(0,5);
   trending.forEach(article=>used.add(article.slug));
   const latest=all.filter(article=>!used.has(article.slug)).slice(0,3);
 
