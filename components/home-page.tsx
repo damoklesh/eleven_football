@@ -3,12 +3,13 @@ import Link from 'next/link';
 import {getAllArticles,getFeaturedArticle,getTrendingArticles,getBreakingArticles,type Article} from '@/lib/articles';
 import {Card,Newsletter} from '@/components/editorial';
 import {categorySlug,getDictionary,type Locale} from '@/lib/i18n';
+import {getTrendingCanonicalSlugs} from '@/lib/db/analytics';
 
 function highestPriority(articles:Article[], used:Set<string>, categories?:string[]){
   return articles.filter(article=>!used.has(article.slug)&&(!categories||categories.includes(article.category))).sort((a,b)=>b.homepagePriority-a.homepagePriority||+new Date(b.date)-+new Date(a.date))[0];
 }
 
-export function HomePage({locale}:{locale:Locale}){
+export async function HomePage({locale}:{locale:Locale}){
   const dictionary=getDictionary(locale),ui=dictionary.ui;
   const all=getAllArticles(locale),hero=getFeaturedArticle(locale);
   if(!hero)return null;
@@ -19,8 +20,10 @@ export function HomePage({locale}:{locale:Locale}){
   if(tactics)used.add(tactics.slug);
   const breaking=getBreakingArticles(locale).find(article=>!used.has(article.slug));
   if(breaking)used.add(breaking.slug);
-  const trendingPool=getTrendingArticles(locale).filter(article=>!used.has(article.slug));
-  const dataArticles=all.filter(article=>article.category==='Datos'&&!used.has(article.slug)).slice(0,2);
+  const measuredTrending:string[]=await getTrendingCanonicalSlugs(12).catch(()=>[] as string[]);
+  const measuredArticles:Article[]=measuredTrending.map(slug=>all.find(article=>article.slug===slug)).filter((article):article is Article=>article!==undefined).filter(article=>!used.has(article.slug));
+  const trendingPool=[...measuredArticles,...getTrendingArticles(locale).filter(article=>!used.has(article.slug)&&!measuredTrending.includes(article.slug))];
+  const dataArticles:Article[]=measuredArticles.length?[]:all.filter(article=>article.category==='Datos'&&!used.has(article.slug)).slice(0,2);
   const dataSlugs=new Set(dataArticles.map(article=>article.slug));
   const trending=[...dataArticles,...trendingPool.filter(article=>!dataSlugs.has(article.slug))].slice(0,5);
   trending.forEach(article=>used.add(article.slug));
