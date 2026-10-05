@@ -8,9 +8,12 @@
     "start": "next start",
     "lint": "eslint",
     "validate:content": "tsx scripts/validate-content.ts",
+    "validate:editorial-batch": "tsx scripts/validate-editorial-batch.mjs",
+    "import:editorial-batch": "tsx scripts/import-manifest-editorial.mjs",
+    "find:editorial-batch": "tsx scripts/find-editorial-batch.mjs",
     "db:migrate": "drizzle-kit migrate",
     "sync:articles": "tsx scripts/sync-articles.ts",
-    "test": "npm run validate:content && tsx --test tests/articles.test.ts"
+    "test": "npm run validate:content && tsx --test tests/articles.test.ts tests/editorial-import.test.ts"
   },
   "dependencies": {
     "@neon/config": "^1.8.3",

@@ -8,6 +8,13 @@
       "when": 1790962725356,
       "tag": "0000_gifted_red_wolf",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1791215010824,
+      "tag": "0001_add_article_story_state",
+      "breakpoints": true
     }
   ]
 }

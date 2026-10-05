@@ -1,0 +1,1 @@
+ALTER TABLE "articles" ADD COLUMN "story_state" text DEFAULT 'NEW' NOT NULL;

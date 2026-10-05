@@ -1,0 +1,70 @@
+name: Validate editorial batch
+
+on:
+  push:
+    branches:
+      - 'newsroom/**'
+    paths:
+      - 'editorial-inbox/**'
+  workflow_dispatch:
+    inputs:
+      newsroom_ref:
+        description: 'SHA o rama newsroom a validar'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout trusted main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: trusted
+
+      - name: Checkout untrusted newsroom input
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.newsroom_ref || github.sha }}
+          path: incoming
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: trusted/package-lock.json
+
+      - name: Install trusted dependencies
+        working-directory: trusted
+        run: npm ci
+
+      - name: Locate the one editorial batch
+        id: batch
+        working-directory: trusted
+        run: |
+          batch_json="$(npm run --silent find:editorial-batch -- ../incoming/editorial-inbox)"
+          batch_directory="$(node -e 'console.log(JSON.parse(process.argv[1]).directory)' "$batch_json")"
+          echo "json=$batch_json" >> "$GITHUB_OUTPUT"
+          echo "directory=$batch_directory" >> "$GITHUB_OUTPUT"
+
+      - name: Validate and import in the trusted working tree
+        working-directory: trusted
+        run: |
+          npm run validate:editorial-batch -- "${{ steps.batch.outputs.directory }}"
+          npm run import:editorial-batch -- "${{ steps.batch.outputs.directory }}" content/articles/es public/images/articles
+
+      - name: Test and build trusted application
+        working-directory: trusted
+        run: |
+          npm test
+          npm run build
+
+      - name: Write validation summary
+        working-directory: trusted
+        run: |
+          node -e 'const batch=JSON.parse(process.argv[1]); const counts=batch.articles.reduce((a,x)=>(a[x.storyState]=(a[x.storyState]||0)+1,a),{}); console.log(`## Editorial validation\n\n- Batch: ${batch.batchId}\n- Date: ${batch.date}\n- Articles: ${batch.articles.length}\n- Images: ${batch.articles.length}\n- NEW: ${counts.NEW||0}\n- UPDATE: ${counts.UPDATE||0}\n- EVERGREEN_REVISIT: ${counts.EVERGREEN_REVISIT||0}\n- Tests: passed\n- Build: passed`)' "${{ steps.batch.outputs.json }}" >> "$GITHUB_STEP_SUMMARY"

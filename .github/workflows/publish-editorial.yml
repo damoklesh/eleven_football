@@ -1,0 +1,143 @@
+name: Publish editorial batch
+
+on:
+  workflow_run:
+    workflows:
+      - Validate editorial batch
+    types:
+      - completed
+
+permissions:
+  contents: write
+
+concurrency:
+  group: eleven-editorial-production
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      startsWith(github.event.workflow_run.head_branch, 'newsroom/')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout latest trusted main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          path: repo
+
+      - name: Checkout exact validated newsroom input
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          path: incoming
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: repo/package-lock.json
+
+      - name: Install trusted dependencies
+        working-directory: repo
+        run: npm ci
+
+      - name: Locate validated batch
+        id: batch
+        working-directory: repo
+        run: |
+          batch_json="$(npm run --silent find:editorial-batch -- ../incoming/editorial-inbox)"
+          batch_directory="$(node -e 'console.log(JSON.parse(process.argv[1]).directory)' "$batch_json")"
+          batch_date="$(node -e 'console.log(JSON.parse(process.argv[1]).date)' "$batch_json")"
+          echo "json=$batch_json" >> "$GITHUB_OUTPUT"
+          echo "directory=$batch_directory" >> "$GITHUB_OUTPUT"
+          echo "date=$batch_date" >> "$GITHUB_OUTPUT"
+
+      - name: Import, verify and commit current main
+        working-directory: repo
+        env:
+          BATCH_DIRECTORY: ${{ steps.batch.outputs.directory }}
+          BATCH_DATE: ${{ steps.batch.outputs.date }}
+        run: |
+          set -euo pipefail
+          prepare_batch() {
+            npm run import:editorial-batch -- "$BATCH_DIRECTORY" content/articles/es public/images/articles --allow-existing-identical
+            npm test
+            npm run build
+          }
+          prepare_batch
+          if [ -n "$(git status --porcelain)" ]; then
+            node scripts/assert-production-diff.mjs .
+            git config user.name 'eleven-editorial-bot'
+            git config user.email 'eleven-editorial-bot@users.noreply.github.com'
+            git add -- content/articles/es public/images/articles
+            git commit -m "publish: ELEVEN editorial batch $BATCH_DATE"
+            for attempt in 1 2 3; do
+              if git push origin HEAD:main; then
+                break
+              fi
+              if [ "$attempt" = 3 ]; then
+                echo 'MAIN_ADVANCED_CONFLICT' >&2
+                exit 1
+              fi
+              git fetch origin main
+              git reset --hard origin/main
+              prepare_batch
+              if [ -z "$(git status --porcelain)" ]; then
+                break
+              fi
+              node scripts/assert-production-diff.mjs .
+              git add -- content/articles/es public/images/articles
+              git commit -m "publish: ELEVEN editorial batch $BATCH_DATE"
+            done
+          fi
+
+      - name: Migrate and synchronize Neon
+        working-directory: repo
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_URL_UNPOOLED: ${{ secrets.DATABASE_URL_UNPOOLED }}
+        run: |
+          npm run db:migrate
+          npm run sync:articles
+
+      - name: Deploy validated build to Vercel
+        working-directory: repo
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          npm install --global vercel@62.1.0
+          vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+          vercel build --prod --token="$VERCEL_TOKEN"
+          deployment_url="$(vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN")"
+          echo "VERCEL_DEPLOYMENT_URL=$deployment_url" >> "$GITHUB_ENV"
+
+      - name: Health check every published article
+        working-directory: repo
+        env:
+          BATCH_DIRECTORY: ${{ steps.batch.outputs.directory }}
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --retry 5 --retry-all-errors --retry-delay 12 https://eleven-football.vercel.app/
+          node -e 'const fs=require("fs"); for (const article of JSON.parse(fs.readFileSync(process.argv[1], "utf8")).articles) console.log(article.slug)' "$BATCH_DIRECTORY/manifest.json" | while read -r slug; do
+            curl --fail --silent --show-error --retry 5 --retry-all-errors --retry-delay 12 "https://eleven-football.vercel.app/es/article/$slug"
+          done
+
+      - name: Write production summary
+        working-directory: repo
+        run: |
+          echo "## Editorial publication" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Batch: ${{ steps.batch.outputs.date }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Main commit: $(git rev-parse HEAD)" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Neon migration: passed" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Neon sync: passed" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Vercel: $VERCEL_DEPLOYMENT_URL" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Health checks: passed" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Delete successfully published newsroom branch
+        run: git push origin --delete "${{ github.event.workflow_run.head_branch }}"
