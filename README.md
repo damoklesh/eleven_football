@@ -29,6 +29,8 @@ npm run build
 
 Conecta el repositorio de GitHub a un nuevo proyecto Vercel llamado `eleven-football`. Cada push a la rama de producción desplegará el sitio.
 
+La guía completa de importación editorial, sincronización con Neon y automatización con GitHub Actions está en [docs/operacion-publicacion-editorial.md](docs/operacion-publicacion-editorial.md).
+
 ## Futuro newsroom AI
 
 La automatización puede modificar exclusivamente `content/articles/**` y `public/images/articles/**`; no necesita tocar código de aplicación.
