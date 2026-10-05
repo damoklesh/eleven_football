@@ -66,5 +66,7 @@ jobs:
 
       - name: Write validation summary
         working-directory: trusted
+        env:
+          BATCH_DIRECTORY: ${{ steps.batch.outputs.directory }}
         run: |
-          node -e 'const batch=JSON.parse(process.argv[1]); const counts=batch.articles.reduce((a,x)=>(a[x.storyState]=(a[x.storyState]||0)+1,a),{}); console.log(`## Editorial validation\n\n- Batch: ${batch.batchId}\n- Date: ${batch.date}\n- Articles: ${batch.articles.length}\n- Images: ${batch.articles.length}\n- NEW: ${counts.NEW||0}\n- UPDATE: ${counts.UPDATE||0}\n- EVERGREEN_REVISIT: ${counts.EVERGREEN_REVISIT||0}\n- Tests: passed\n- Build: passed`)' "${{ steps.batch.outputs.json }}" >> "$GITHUB_STEP_SUMMARY"
+          node -e 'const fs=require("fs"); const batch=JSON.parse(fs.readFileSync(process.argv[1], "utf8")); const counts=batch.articles.reduce((a,x)=>(a[x.storyState]=(a[x.storyState]||0)+1,a),{}); console.log(`## Editorial validation\n\n- Batch: ${batch.batchId}\n- Date: ${batch.date}\n- Articles: ${batch.articles.length}\n- Images: ${batch.articles.length}\n- NEW: ${counts.NEW||0}\n- UPDATE: ${counts.UPDATE||0}\n- EVERGREEN_REVISIT: ${counts.EVERGREEN_REVISIT||0}\n- Tests: passed\n- Build: passed`)' "$BATCH_DIRECTORY/manifest.json" >> "$GITHUB_STEP_SUMMARY"

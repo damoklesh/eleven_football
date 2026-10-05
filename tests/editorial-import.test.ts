@@ -11,10 +11,10 @@ function png(width = 1536, height = 864, seed = 'a') {
   return image;
 }
 
-function setup(slugs = ['primera-pieza']) {
+function setup(slugs = ['primera-pieza'], archiveCheck = 'ARCHIVE_CHECK_OK_WEB_CRAWL') {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'eleven-import-test-')); const batch = path.join(root, '2026-10-06'); const articles = path.join(batch, 'articles'); const images = path.join(batch, 'images'); const destination = path.join(root, 'content'); const imageDestination = path.join(root, 'public-images');
   fs.mkdirSync(articles, {recursive: true}); fs.mkdirSync(images, {recursive: true}); fs.writeFileSync(path.join(batch, 'editorial-report.md'), '# Report');
-  const manifest = {schemaVersion: 2, batchId: 'ELEVEN-2026-10-06', date: '2026-10-06', locale: 'es', archiveCheck: 'ARCHIVE_CHECK_OK_WEB_CRAWL', sourceSite: 'https://eleven-football.vercel.app/', articles: slugs.map((slug, index) => createArticle({slug, index, articles, images}))};
+  const manifest = {schemaVersion: 2, batchId: 'ELEVEN-2026-10-06', date: '2026-10-06', locale: 'es', archiveCheck, sourceSite: 'https://eleven-football.vercel.app/', articles: slugs.map((slug, index) => createArticle({slug, index, articles, images}))};
   writeManifest(batch, manifest); return {root, batch, articles, images, destination, imageDestination, manifest};
 }
 
@@ -31,6 +31,13 @@ function run(fixture: ReturnType<typeof setup>, ...extra: string[]) { try { impo
 function cleanup(fixture: ReturnType<typeof setup>) { fs.rmSync(fixture.root, {recursive: true, force: true}); }
 
 test('valid v2 batch imports all articles and images', () => { const fixture = setup(['primera-pieza', 'segunda-pieza']); try { const result = run(fixture); assert.equal(result.status, 0, result.stderr); for (const article of fixture.manifest.articles) { assert.ok(fs.existsSync(path.join(fixture.destination, `${article.slug}.md`))); assert.ok(fs.existsSync(path.join(fixture.imageDestination, `${article.slug}.png`))); } } finally { cleanup(fixture); } });
+
+test('all supported archive check outcomes are valid', () => {
+  for (const archiveCheck of ['ARCHIVE_CHECK_OK_WEB_CRAWL', 'ARCHIVE_CHECK_OK_FEED', 'ARCHIVE_CHECK_OK_SITEMAP', 'ARCHIVE_CHECK_UNAVAILABLE']) {
+    const fixture = setup(['primera-pieza'], archiveCheck);
+    try { assert.equal(run(fixture).status, 0, archiveCheck); } finally { cleanup(fixture); }
+  }
+});
 
 test('invalid batches fail before any target is written', () => {
   const cases: Array<[string, (fixture: ReturnType<typeof setup>) => void]> = [

@@ -50,7 +50,12 @@ export const EditorialManifestSchema = z.object({
   batchId: z.string().regex(/^ELEVEN-\d{4}-\d{2}-\d{2}$/),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   locale: z.literal('es'),
-  archiveCheck: z.literal('ARCHIVE_CHECK_OK_WEB_CRAWL'),
+  archiveCheck: z.enum([
+    'ARCHIVE_CHECK_OK_WEB_CRAWL',
+    'ARCHIVE_CHECK_OK_FEED',
+    'ARCHIVE_CHECK_OK_SITEMAP',
+    'ARCHIVE_CHECK_UNAVAILABLE',
+  ]),
   sourceSite: z.string().url(),
   articles: z.array(EditorialManifestArticleSchema).min(1),
 }).strict().superRefine((manifest, context) => {

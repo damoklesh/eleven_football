@@ -140,4 +140,5 @@ jobs:
           echo "- Health checks: passed" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Delete successfully published newsroom branch
+        working-directory: repo
         run: git push origin --delete "${{ github.event.workflow_run.head_branch }}"
